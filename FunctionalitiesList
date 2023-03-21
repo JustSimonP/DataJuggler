@@ -1,0 +1,4 @@
+Read the json tree with property names, visualize it
+Prepare lists of values based on chosen property or element in bigger object
+Create diff between json files
+Retrieve elements based on json indexes
