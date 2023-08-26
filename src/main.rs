@@ -17,13 +17,20 @@ fn main() {
 fn app(cx: Scope) -> Element {
 
     let json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
+    use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
+    // use_shared_state_provider(cx, || JsonPath {maybe_json_path: None});
 
     cx.render(rsx! {
         link { rel: "stylesheet", href: "https://unpkg.com/tailwindcss@^2.0/dist/tailwind.min.css" },
 
         div {
 
-            json_name_to_path_map.keys().into_iter().map(|x| rsx! {h1{"{x}"}})
+            json_name_to_path_map.keys().into_iter().map(|file_name| rsx! {
+                ul {
+                    li{onclick: move |event| {*maybe_json_path.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: json_name_to_path_map(file_name)});
+                    },
+                    "{file_name}"}
+                }})
         }
          // json_name_to_path_map.keys.map(|x.|)
     })
@@ -47,3 +54,23 @@ fn get_jsons() -> HashMap<String, PathBuf>  {
     available_jsons
 }
 
+#[derive(Clone, Debug)]
+enum JsonViewState {
+    FileNotChosen,
+    Loading,
+    Loaded(JsonPath),
+}
+
+#[derive(Clone, Debug)]
+struct JsonPath {
+    maybe_json_path: Option<PathBuf>
+}
+
+#[inline_props]
+fn JsonView(cx : Scope) -> Element  {
+    let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
+    match &*json_view_state.read() {
+        JsonViewState::Loaded(path) => println!("Its working"),
+        _ => println!("DUPA")
+    }
+}
