@@ -18,6 +18,8 @@ fn app(cx: Scope) -> Element {
 
     let json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
+    let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
+
     // use_shared_state_provider(cx, || JsonPath {maybe_json_path: None});
 
     cx.render(rsx! {
@@ -27,15 +29,22 @@ fn app(cx: Scope) -> Element {
 
             json_name_to_path_map.keys().into_iter().map(|file_name| rsx! {
                 ul {
-                    li{onclick: move |event| {*maybe_json_path.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: json_name_to_path_map(file_name)});
-                    },
+                    li{onclick: move |event| {
+                      let kil: Option<PathBuf> =  match json_name_to_path_map.get(file_name) {
+                            Some(dupa) => Some(dupa.clone()),
+                            _ => None
+                        };
+                        *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: kil})}
+                    ,
                     "{file_name}"}
                 }})
         }
          // json_name_to_path_map.keys.map(|x.|)
     })
 }
-
+// async fn determinePath(dupa: UseRef<HashMap<String, PathBuf>>) {
+//
+// }
 fn get_jsons() -> HashMap<String, PathBuf>  {
     let dir = env::current_dir().unwrap();
     let current_dir = fs::read_dir(dir).unwrap();
