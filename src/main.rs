@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::fs::File;
+use std::io::{BufReader, Read};
 use std::iter::Map;
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, WindowBuilder};
@@ -16,7 +17,8 @@ fn main() {
 }
 fn app(cx: Scope) -> Element {
 
-    let json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
+    // let  json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
+    let  json_name_to_path_map = cx.use_hook(||get_jsons());
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
 
@@ -24,21 +26,39 @@ fn app(cx: Scope) -> Element {
 
     cx.render(rsx! {
         link { rel: "stylesheet", href: "https://unpkg.com/tailwindcss@^2.0/dist/tailwind.min.css" },
-
         div {
+            display: "flex",
+            flex_direction: "row",
+            width: "100%",
+            align_items: "stretch",
 
-            json_name_to_path_map.keys().into_iter().map(|file_name| rsx! {
+            div {
+                width: "20%",
+                border_style: "solid",
+                border_width: "1px",
+                border_color: "black",
+
+            json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
                 ul {
                     li{onclick: move |event| {
-                      let kil: Option<PathBuf> =  match json_name_to_path_map.get(file_name) {
-                            Some(dupa) => Some(dupa.clone()),
-                            _ => None
-                        };
-                        *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: kil})}
+                      // let kil: Option<PathBuf> =  match json_name_to_path_map.get(file_name) {
+                      //       Some(dupa) => Some(dupa.clone()),
+                      //       _ => None
+                      //   };
+                        *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
                     ,
                     "{file_name}"}
                 }})
+            }
+            div {
+                border_style: "solid",
+                border_width: "1px",
+                border_color: "black",
+                width: "80%",
+                JsonView {}
+            }
         }
+
          // json_name_to_path_map.keys.map(|x.|)
     })
 }
@@ -72,14 +92,31 @@ enum JsonViewState {
 
 #[derive(Clone, Debug)]
 struct JsonPath {
-    maybe_json_path: Option<PathBuf>
+    pub(crate) maybe_json_path: PathBuf
 }
 
 #[inline_props]
 fn JsonView(cx : Scope) -> Element  {
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
     match &*json_view_state.read() {
-        JsonViewState::Loaded(path) => println!("Its working"),
-        _ => println!("DUPA")
+        JsonViewState::Loaded(path) => {
+            let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
+            let mut buf_reader = BufReader::new(file);
+            let mut contents = String::new();
+            buf_reader.read_to_string(&mut contents).expect("TODO: panic message");
+            println!("{contents}");
+            render! {
+
+            div {
+                "chushuefnef"
+            }
+        }
+        }
+         ,
+        _ => render! {
+            div {
+                "dupa"
+            }
+        }
     }
 }
