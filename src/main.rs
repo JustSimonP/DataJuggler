@@ -18,7 +18,7 @@ fn main() {
 fn app(cx: Scope) -> Element {
 
     // let  json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
-    let  json_name_to_path_map = cx.use_hook(||get_jsons());
+    let  json_name_to_path_map: &mut HashMap<String, PathBuf> = cx.use_hook(||get_jsons());
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
 
@@ -47,7 +47,8 @@ fn app(cx: Scope) -> Element {
                       //   };
                         *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
                     ,
-                    "{file_name}"}
+                    "{file_name}"
+                        }
                 }})
             }
             div {
@@ -103,16 +104,18 @@ fn JsonView(cx : Scope) -> Element  {
             let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
             let mut buf_reader = BufReader::new(file);
             let mut contents = String::new();
-            buf_reader.read_to_string(&mut contents).expect("TODO: panic message");
-            println!("{contents}");
+            buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
+            //from_reader can be used to deserialize directly from the file
+            //let formatted_json = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
+            //println!("json: {}",&formatted_json);
             render! {
 
             div {
-                "chushuefnef"
+                    white_space: "pre-wrap",
+              "{contents}"
             }
         }
-        }
-         ,
+        },
         _ => render! {
             div {
                 "dupa"
