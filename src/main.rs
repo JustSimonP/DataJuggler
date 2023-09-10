@@ -1,3 +1,4 @@
+
 use std::{env, fs};
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -7,6 +8,10 @@ use std::io::{BufReader, Read};
 use std::iter::Map;
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, WindowBuilder};
+use serde_json::ser::Compound::Map;
+use serde_json::Value;
+
+
 // use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 fn main() {
 
@@ -103,8 +108,10 @@ fn JsonView(cx : Scope) -> Element  {
         JsonViewState::Loaded(path) => {
             let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
             let mut buf_reader = BufReader::new(file);
-            let mut contents = String::new();
+            let mut contents: std::string::String = String::new();
+            let serde_json_string =  serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
+            let is_json_formatted = &contents[0..6].find("\n").is_some();
             //from_reader can be used to deserialize directly from the file
             //let formatted_json = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
             //println!("json: {}",&formatted_json);
@@ -122,4 +129,20 @@ fn JsonView(cx : Scope) -> Element  {
             }
         }
     }
+}
+
+//check if recursive call is optimized in rust, maybe benchmark
+// check if flatten from serde will be useful here
+fn deserialize_and_find(json: Value) -> Option<String> {
+    use serde_json::Value::{Array, Bool, Number, Object, String, Null};
+     match json {
+
+             Bool(some_boolean)=> None,
+             Number(some_int) => None,
+             String(some_string) => None,
+             Array(json_array) => None,
+             Object(json_map) => None,
+             Null => None,
+
+     }
 }
