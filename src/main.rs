@@ -1,14 +1,11 @@
-
 use std::{env, fs};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::iter::Map;
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, WindowBuilder};
-use serde_json::ser::Compound::Map;
 use serde_json::Value;
 
 
@@ -20,10 +17,11 @@ fn main() {
     // let other = sender.clone();
     dioxus_desktop::launch(app);
 }
+
 fn app(cx: Scope) -> Element {
 
     // let  json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
-    let  json_name_to_path_map: &mut HashMap<String, PathBuf> = cx.use_hook(||get_jsons());
+    let json_name_to_path_map: &mut HashMap<String, PathBuf> = cx.use_hook(|| get_jsons());
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
 
@@ -68,13 +66,14 @@ fn app(cx: Scope) -> Element {
          // json_name_to_path_map.keys.map(|x.|)
     })
 }
+
 // async fn determinePath(dupa: UseRef<HashMap<String, PathBuf>>) {
 //
 // }
-fn get_jsons() -> HashMap<String, PathBuf>  {
+fn get_jsons() -> HashMap<String, PathBuf> {
     let dir = env::current_dir().unwrap();
     let current_dir = fs::read_dir(dir).unwrap();
-    let mut available_jsons= HashMap::new();
+    let mut available_jsons = HashMap::new();
     current_dir.for_each(|item| {
         let retrieved_file = item.unwrap();
         let file_path = &retrieved_file.path();
@@ -98,18 +97,18 @@ enum JsonViewState {
 
 #[derive(Clone, Debug)]
 struct JsonPath {
-    pub(crate) maybe_json_path: PathBuf
+    pub(crate) maybe_json_path: PathBuf,
 }
 
 #[inline_props]
-fn JsonView(cx : Scope) -> Element  {
+fn JsonView(cx: Scope) -> Element {
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
     match &*json_view_state.read() {
         JsonViewState::Loaded(path) => {
             let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
             let mut buf_reader = BufReader::new(file);
             let mut contents: std::string::String = String::new();
-            let serde_json_string =  serde_json::from_reader(&buf_reader).unwrap();
+            let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
             //from_reader can be used to deserialize directly from the file
@@ -122,7 +121,7 @@ fn JsonView(cx : Scope) -> Element  {
               "{contents}"
             }
         }
-        },
+        }
         _ => render! {
             div {
                 "dupa"
@@ -135,14 +134,12 @@ fn JsonView(cx : Scope) -> Element  {
 // check if flatten from serde will be useful here
 fn deserialize_and_find(json: Value) -> Option<String> {
     use serde_json::Value::{Array, Bool, Number, Object, String, Null};
-     match json {
-
-             Bool(some_boolean)=> None,
-             Number(some_int) => None,
-             String(some_string) => None,
-             Array(json_array) => None,
-             Object(json_map) => None,
-             Null => None,
-
-     }
+    match json {
+        Bool(some_boolean) => None,
+        Number(some_int) => None,
+        String(some_string) => None,
+        Array(json_array) => None,
+        Object(json_map) => None,
+        Null => None,
+    }
 }

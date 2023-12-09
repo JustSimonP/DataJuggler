@@ -2,3 +2,9 @@ Read the json tree with property names, visualize it
 Prepare lists of values based on chosen property or element in bigger object
 Create diff between json files
 Retrieve elements based on json indexes
+
+Program serializes your queries into the text file
+Scenarios:
+1) Find all objects related to the other object with given value
+2) Count object with the specific value
+3) Select all object with field that has specific value
