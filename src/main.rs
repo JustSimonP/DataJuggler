@@ -6,7 +6,11 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, WindowBuilder};
+use dioxus_desktop::tao::dpi::{PhysicalPosition, Position};
+use serde_json::ser::State;
 use serde_json::Value;
+use winit::dpi::PhysicalSize;
+use winit::monitor::MonitorHandle;
 
 
 // use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
@@ -15,7 +19,21 @@ fn main() {
     // let (sender, receiver) = unbounded();
     //
     // let other = sender.clone();
-    dioxus_desktop::launch(app);
+
+    // withPosition method describes position for top left cover part of displayed window
+    let (window_width, window_height, center_position) = getWindowSizeWithPosition();
+    dioxus_desktop::launch_cfg(app,
+                               Config::default()
+                                   .with_window(WindowBuilder::new()
+                                   .with_resizable(true)
+                                   .with_inner_size(
+                                   dioxus_desktop::wry::application::dpi::PhysicalSize::new(window_width, window_height),
+                               )
+                                   .with_title("Json Juggler")
+                                   .with_position(center_position)
+                               ));
+
+    // dioxus_desktop::launch(app);
 }
 
 fn app(cx: Scope) -> Element {
@@ -23,48 +41,72 @@ fn app(cx: Scope) -> Element {
     // let  json_name_to_path_map: HashMap<String, PathBuf> = get_jsons();
     let json_name_to_path_map: &mut HashMap<String, PathBuf> = cx.use_hook(|| get_jsons());
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
-    let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
+    let json_view_state: &UseSharedState<JsonViewState> = use_shared_state::<JsonViewState>(cx).unwrap();
 
     // use_shared_state_provider(cx, || JsonPath {maybe_json_path: None});
 
     cx.render(rsx! {
-        link { rel: "stylesheet", href: "https://unpkg.com/tailwindcss@^2.0/dist/tailwind.min.css" },
-        div {
-            display: "flex",
-            flex_direction: "row",
-            width: "100%",
-            align_items: "stretch",
+                 // link { rel: "stylesheet", href: "https://unpkg.com/tailwindcss@^2.0/dist/tailwind.min.css" }
+                // style { include_str!("./style.css") }
+                div {
 
-            div {
-                width: "20%",
-                border_style: "solid",
-                border_width: "1px",
-                border_color: "black",
+                width:"100%",
+                display:"flex",
 
-            json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
-                ul {
-                    li{onclick: move |event| {
-                      // let kil: Option<PathBuf> =  match json_name_to_path_map.get(file_name) {
-                      //       Some(dupa) => Some(dupa.clone()),
-                      //       _ => None
-                      //   };
-                        *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
-                    ,
-                    "{file_name}"
-                        }
-                }})
-            }
-            div {
-                border_style: "solid",
-                border_width: "1px",
-                border_color: "black",
-                width: "80%",
-                JsonView {}
-            }
-        }
+                div {
+                    width: "20%",
+                    border_style: "solid",
+                    border_width: "1px",
+                    border_color: "black",
+
+                json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
+                    ul {
+                        li{onclick: move |event| {
+                          // let kil: Option<PathBuf> =  match json_name_to_path_map.get(file_name) {
+                          //       Some(dupa) => Some(dupa.clone()),
+                          //       _ => None
+                          //   };
+                            *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
+                        ,
+                        "{file_name}"
+                            }
+                    }})
+                }
+                div {
+                    border_style: "solid",
+                    border_width: "1px",
+                    border_color: "black",
+                    width: "80%",
+                    JsonView {}
+                }
+                }
+
 
          // json_name_to_path_map.keys.map(|x.|)
     })
+}
+
+fn getWindowSizeWithPosition() -> (u32, u32, Position) {
+    let event_loop = winit::event_loop::EventLoop::new();
+
+    // Get the primary monitor
+    let primary_monitor: MonitorHandle = event_loop.primary_monitor().unwrap();
+    let monitor_size: PhysicalSize<u32> = primary_monitor.size();
+
+    let center_x = (monitor_size.width /2) as i32;
+    let center_y = (monitor_size.height /2) as i32;
+
+    // Calculate the desired width and height (80% of the screen size)
+    let window_width = (monitor_size.width as f64 * 0.8) as u32;
+    let window_height = (monitor_size.height as f64 * 0.8) as u32;
+
+    let corner_position_x = center_x - (window_width as i32/ 2);
+    let corner_position_y = center_y - (window_height as i32/ 2);
+
+    // let center_position: Position =  Position::Physical(PhysicalPosition::new((monitor_size.width /2) as i32,(monitor_size.height /2) as i32));
+    let center_position: Position =  Position::Physical(PhysicalPosition::new(corner_position_x as i32,corner_position_y as i32));
+
+    (window_width, window_height, center_position)
 }
 
 // async fn determinePath(dupa: UseRef<HashMap<String, PathBuf>>) {
@@ -100,7 +142,7 @@ struct JsonPath {
     pub(crate) maybe_json_path: PathBuf,
 }
 
-#[inline_props]
+#[component]
 fn JsonView(cx: Scope) -> Element {
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
     match &*json_view_state.read() {
@@ -108,12 +150,12 @@ fn JsonView(cx: Scope) -> Element {
             let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
             let mut buf_reader = BufReader::new(file);
             let mut contents: std::string::String = String::new();
-            let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
+            // let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
             //from_reader can be used to deserialize directly from the file
-            //let formatted_json = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
-            //println!("json: {}",&formatted_json);
+            // let formatted_json: &mut State = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
+            // println!("json: {}",&formatted_json.);
             render! {
 
             div {
