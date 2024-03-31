@@ -16,9 +16,6 @@ use winit::monitor::MonitorHandle;
 // use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 fn main() {
 
-    // let (sender, receiver) = unbounded();
-    //
-    // let other = sender.clone();
 
     // withPosition method describes position for top left cover part of displayed window
     let (window_width, window_height, center_position) = getWindowSizeWithPosition();
@@ -103,15 +100,11 @@ fn getWindowSizeWithPosition() -> (u32, u32, Position) {
     let corner_position_x = center_x - (window_width as i32/ 2);
     let corner_position_y = center_y - (window_height as i32/ 2);
 
-    // let center_position: Position =  Position::Physical(PhysicalPosition::new((monitor_size.width /2) as i32,(monitor_size.height /2) as i32));
     let center_position: Position =  Position::Physical(PhysicalPosition::new(corner_position_x as i32,corner_position_y as i32));
 
     (window_width, window_height, center_position)
 }
 
-// async fn determinePath(dupa: UseRef<HashMap<String, PathBuf>>) {
-//
-// }
 fn get_jsons() -> HashMap<String, PathBuf> {
     let dir = env::current_dir().unwrap();
     let current_dir = fs::read_dir(dir).unwrap();
@@ -157,9 +150,11 @@ fn JsonView(cx: Scope) -> Element {
             // let formatted_json: &mut State = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
             // println!("json: {}",&formatted_json.);
             render! {
-
+            SearchBox{}
             div {
                     white_space: "pre-wrap",
+                    padding: "20px",
+                    background_color: "lightgray",
               "{contents}"
             }
         }
@@ -171,6 +166,35 @@ fn JsonView(cx: Scope) -> Element {
         }
     }
 }
+#[component]
+pub fn SearchBox(cx: Scope) -> Element {
+    let mut searchValue = cx.use_hook(|| "");
+    let getData = move |_| {
+        println!("mfniecmiwmi");
+    };
+    render! {
+        div {
+                display: "flex",
+                flex_direction: "row",
+
+            input {
+                placeholder: "Type the value you want to search in document",
+                value: "{searchValue}",
+                border: "3px",
+                position: "relative"
+            }
+            button {
+                content: "+",
+                background_color: "lightblue",
+
+            }
+            button {
+                onclick: getData
+            }
+        }
+    }
+}
+
 
 //check if recursive call is optimized in rust, maybe benchmark
 // check if flatten from serde will be useful here
