@@ -1,3 +1,5 @@
+mod json_filter_methods;
+
 use std::{env, fs};
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -12,6 +14,8 @@ use serde_json::Value;
 use winit::dpi::PhysicalSize;
 use winit::monitor::MonitorHandle;
 
+
+use crate::json_filter_methods::json_filter_methods::filter_objects_with_value;
 
 // use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 fn main() {
@@ -146,6 +150,8 @@ fn JsonView(cx: Scope) -> Element {
             // let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
+
+            use_shared_state_provider(cx,  || serde_json::from_str(contents));
             //from_reader can be used to deserialize directly from the file
             // let formatted_json: &mut State = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
             // println!("json: {}",&formatted_json.);
@@ -169,7 +175,7 @@ fn JsonView(cx: Scope) -> Element {
 #[component]
 pub fn SearchBox(cx: Scope) -> Element {
     let mut searchValue = cx.use_hook(|| "");
-    let getData = move |_| {
+    let getData = move || {
         println!("mfniecmiwmi");
     };
     render! {
@@ -189,12 +195,22 @@ pub fn SearchBox(cx: Scope) -> Element {
 
             }
             button {
-                onclick: getData
+                content: "find",
+                onclick: move |event| {
+                    find_json_by_phrase(&cx);
+                }
+
             }
         }
     }
 }
 
+ fn find_json_by_phrase(cx: Scope<'_>) {
+
+    let json_view_state: &UseSharedState<JsonViewState> = use_shared_state::<JsonViewState>(cx).unwrap();
+     filter_objects_with_value()
+    *json_view_state.write() = JsonViewState::FileNotChosen
+}
 
 //check if recursive call is optimized in rust, maybe benchmark
 // check if flatten from serde will be useful here
