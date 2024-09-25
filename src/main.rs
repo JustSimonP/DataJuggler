@@ -1,4 +1,5 @@
 mod json_filter_methods;
+mod filter_components;
 
 use std::{env, fs};
 use std::collections::HashMap;
