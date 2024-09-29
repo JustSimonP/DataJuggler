@@ -1,5 +1,5 @@
 mod json_filter_methods;
-mod filter_components;
+
 
 use std::{env, fs};
 use std::collections::HashMap;
@@ -26,6 +26,7 @@ fn main() {
     let (window_width, window_height, center_position) = getWindowSizeWithPosition();
     dioxus_desktop::launch_cfg(app,
                                Config::default()
+                                   .with_custom_head(r#"<link rel="stylesheet" href="public/tailwind.css">"#.to_string())
                                    .with_window(WindowBuilder::new()
                                    .with_resizable(true)
                                    .with_inner_size(
@@ -139,6 +140,10 @@ enum JsonViewState {
 struct JsonPath {
     pub(crate) maybe_json_path: PathBuf,
 }
+#[derive(Clone,Debug)]
+struct FullJsonTree {
+    pub deserialized_json: Value
+}
 
 #[component]
 fn JsonView(cx: Scope) -> Element {
@@ -151,8 +156,15 @@ fn JsonView(cx: Scope) -> Element {
             // let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
-
-            use_shared_state_provider(cx,  || serde_json::from_str(contents));
+            if  *is_json_formatted {
+                // use jsonxf library for fast pretty print
+                let formatted_json = serde_json::from_str::<Value>(contents.as_str());
+                use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_json.expect("Deserialization has failed")});
+            } else {
+                 contents = jsonxf::pretty_print(contents.as_str()).unwrap();
+                let formatted_json = serde_json::from_str::<Value>(contents.as_str());
+                use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_json.expect("Deserialization has failed")});
+            }
             //from_reader can be used to deserialize directly from the file
             // let formatted_json: &mut State = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
             // println!("json: {}",&formatted_json.);
@@ -162,7 +174,7 @@ fn JsonView(cx: Scope) -> Element {
                     white_space: "pre-wrap",
                     padding: "20px",
                     background_color: "lightgray",
-              "{contents}"
+                    "{contents}"
             }
         }
         }
@@ -198,7 +210,7 @@ pub fn SearchBox(cx: Scope) -> Element {
             button {
                 content: "find",
                 onclick: move |event| {
-                    find_json_by_phrase(&cx);
+                    // find_json_by_phrase(&cx);
                 }
 
             }
@@ -206,12 +218,12 @@ pub fn SearchBox(cx: Scope) -> Element {
     }
 }
 
- fn find_json_by_phrase(cx: Scope<'_>) {
-
-    let json_view_state: &UseSharedState<JsonViewState> = use_shared_state::<JsonViewState>(cx).unwrap();
-     filter_objects_with_value()
-    *json_view_state.write() = JsonViewState::FileNotChosen
-}
+//  fn find_json_by_phrase(cx: Scope<'_>) {
+//
+//     let json_view_state: &UseSharedState<JsonViewState> = use_shared_state::<JsonViewState>(cx).unwrap();
+//      filter_objects_with_value()
+//     *json_view_state.write() = JsonViewState::FileNotChosen
+// }
 
 //check if recursive call is optimized in rust, maybe benchmark
 // check if flatten from serde will be useful here
