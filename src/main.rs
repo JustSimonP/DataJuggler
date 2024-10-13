@@ -1,5 +1,5 @@
 mod json_filter_methods;
-
+mod filter_components;
 
 use std::{env, fs};
 use std::collections::HashMap;
@@ -7,6 +7,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{BufReader, Read};
+use std::ops::Deref;
 use dioxus::prelude::*;
 use dioxus_desktop::{Config, WindowBuilder};
 use dioxus_desktop::tao::dpi::{PhysicalPosition, Position};
@@ -15,6 +16,7 @@ use serde_json::Value;
 use winit::dpi::PhysicalSize;
 use winit::monitor::MonitorHandle;
 
+use crate::filter_components::SimpleFilter;
 
 use crate::json_filter_methods::json_filter_methods::filter_objects_with_value;
 
@@ -28,13 +30,13 @@ fn main() {
                                Config::default()
                                    .with_custom_head(r#"<link rel="stylesheet" href="public/tailwind.css">"#.to_string())
                                    .with_window(WindowBuilder::new()
-                                   .with_resizable(true)
-                                   .with_inner_size(
-                                   dioxus_desktop::wry::application::dpi::PhysicalSize::new(window_width, window_height),
-                               )
-                                   .with_title("Json Juggler")
-                                   .with_position(center_position)
-                               ));
+                                       .with_resizable(true)
+                                       .with_inner_size(
+                                           dioxus_desktop::wry::application::dpi::PhysicalSize::new(window_width, window_height),
+                                       )
+                                       .with_title("Json Juggler")
+                                       .with_position(center_position)
+                                   ));
 
     // dioxus_desktop::launch(app);
 }
@@ -96,17 +98,17 @@ fn getWindowSizeWithPosition() -> (u32, u32, Position) {
     let primary_monitor: MonitorHandle = event_loop.primary_monitor().unwrap();
     let monitor_size: PhysicalSize<u32> = primary_monitor.size();
 
-    let center_x = (monitor_size.width /2) as i32;
-    let center_y = (monitor_size.height /2) as i32;
+    let center_x = (monitor_size.width / 2) as i32;
+    let center_y = (monitor_size.height / 2) as i32;
 
     // Calculate the desired width and height (80% of the screen size)
     let window_width = (monitor_size.width as f64 * 0.8) as u32;
     let window_height = (monitor_size.height as f64 * 0.8) as u32;
 
-    let corner_position_x = center_x - (window_width as i32/ 2);
-    let corner_position_y = center_y - (window_height as i32/ 2);
+    let corner_position_x = center_x - (window_width as i32 / 2);
+    let corner_position_y = center_y - (window_height as i32 / 2);
 
-    let center_position: Position =  Position::Physical(PhysicalPosition::new(corner_position_x as i32,corner_position_y as i32));
+    let center_position: Position = Position::Physical(PhysicalPosition::new(corner_position_x as i32, corner_position_y as i32));
 
     (window_width, window_height, center_position)
 }
@@ -140,9 +142,20 @@ enum JsonViewState {
 struct JsonPath {
     pub(crate) maybe_json_path: PathBuf,
 }
-#[derive(Clone,Debug)]
+
+#[derive(Clone, Debug)]
 struct FullJsonTree {
-    pub deserialized_json: Value
+    pub deserialized_json: Value,
+}
+
+#[derive(Clone, Debug)]
+struct DisplayContents {
+    pub display_contents: String,
+}
+
+#[derive(Clone, Debug)]
+struct RowsToDisplay {
+    pub display_text: String,
 }
 
 #[component]
@@ -156,25 +169,29 @@ fn JsonView(cx: Scope) -> Element {
             // let serde_json_string = serde_json::from_reader(&buf_reader).unwrap();
             buf_reader.read_to_string(&mut contents).expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
-            if  *is_json_formatted {
+            use_shared_state_provider(cx, || DisplayContents { display_contents: String::new() });
+            let displayContents = use_shared_state::<DisplayContents>(cx).unwrap();
+            // Czy uzycie use_ref nie będzie lżejsze
+            if *is_json_formatted {
                 // use jsonxf library for fast pretty print
                 let formatted_json = serde_json::from_str::<Value>(contents.as_str());
-                use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_json.expect("Deserialization has failed")});
+                *displayContents.write() = DisplayContents { display_contents: contents };
             } else {
-                 contents = jsonxf::pretty_print(contents.as_str()).unwrap();
+                contents = jsonxf::pretty_print(contents.as_str()).unwrap();
                 let formatted_json = serde_json::from_str::<Value>(contents.as_str());
-                use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_json.expect("Deserialization has failed")});
+                *displayContents.write() = DisplayContents { display_contents: contents };
             }
             //from_reader can be used to deserialize directly from the file
             // let formatted_json: &mut State = cx.use_hook(||serde_json::from_str(&format!("\"{}\"", &contents)).unwrap());
             // println!("json: {}",&formatted_json.);
             render! {
-            SearchBox{}
+                SearchBox{},
+                SimpleFilter{}
             div {
                     white_space: "pre-wrap",
                     padding: "20px",
                     background_color: "lightgray",
-                    "{contents}"
+                    "{displayContents.write().display_contents}"
             }
         }
         }
@@ -185,6 +202,7 @@ fn JsonView(cx: Scope) -> Element {
         }
     }
 }
+
 #[component]
 pub fn SearchBox(cx: Scope) -> Element {
     let mut searchValue = cx.use_hook(|| "");
