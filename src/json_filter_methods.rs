@@ -1,9 +1,8 @@
-
 pub mod json_filter_methods {
+    use serde_json::{Map, Value};
     use std::error::Error;
     use std::fs::File;
     use std::io::Read;
-    use serde_json::{Map, Value};
 
     fn main() -> Result<(), Box<dyn Error>> {
         let file_path = "C:/Users/User/IdeaProjects/JsonManipulator/src/generated(1).json";
@@ -12,24 +11,24 @@ pub mod json_filter_methods {
             Ok(mappedJson) => {
                 let target_value = "-138.304329";
                 let mut filtered_objects = Vec::new();
-                filter_objects_with_value(&mappedJson, &target_value, "",&mut filtered_objects);
+                filter_objects_with_value(&mappedJson, &target_value, "", &mut filtered_objects);
 
                 println!("Filtered Objects:");
                 for obj in filtered_objects {
                     println!("{}", obj);
                 }
             }
-            Err(e) => eprintln!("Error reading JSON file: {}", e)
+            Err(e) => eprintln!("Error reading JSON file: {}", e),
         }
         Ok(())
     }
 
-
-
-  pub fn filter_objects_with_value(   json: &Value,
-                                    target_value: &str,
-                                    current_key: &str,
-                                    result: &mut Vec<String>,) {
+    pub fn filter_objects_with_value(
+        json: &Value,
+        target_value: &str,
+        current_key: &str,
+        result: &mut Vec<String>,
+    ) {
         match json {
             Value::Object(map) => {
                 for (key, value) in map {
@@ -51,17 +50,14 @@ pub mod json_filter_methods {
                 let maybe_value = match other {
                     // TODO Find more generic solution to not duplicate the code
                     Value::Bool(value) => Some(value.to_string()),
-                    Value::Number(value) => {
-                        Some(value.to_string())
-                    },
+                    Value::Number(value) => Some(value.to_string()),
                     Value::String(value) => Some(value.to_string()),
-                    _ | Value::Null => None
+                    _ | Value::Null => None,
                 };
                 // Check if the current value matches the target value
-                if maybe_value.is_some() &&  maybe_value.unwrap() == target_value {
+                if maybe_value.is_some() && maybe_value.unwrap() == target_value {
                     let key_value_pair = current_key.to_string() + " " + &*json.clone().to_string();
                     result.push(key_value_pair);
-
                 }
             }
         }
@@ -109,7 +105,7 @@ pub mod json_filter_methods {
                             }
                         } else {
                             println!("COS TAM TEST !!!!: {}", current.clone().to_string());
-                            return Some(current)
+                            return Some(current);
                         }
                     }
                 }
@@ -118,15 +114,13 @@ pub mod json_filter_methods {
             })
             .collect()
     }
-//look for values of object with certain name
-//look for objects of certain values
-//look for combination of fields with specific values
+    //look for values of object with certain name
+    //look for objects of certain values
+    //look for combination of fields with specific values
 
     fn read_json_file(file_path: &str) -> Result<Value, Box<dyn Error>> {
         // Open the file
         let file = File::open(file_path)?;
-
-
 
         // Create a buffered reader
         let mut reader = std::io::BufReader::new(file);
@@ -137,8 +131,6 @@ pub mod json_filter_methods {
 
         // Deserialize the JSON string into your data structure
         let data: Value = serde_json::from_str(&contents)?;
-
-
 
         Ok(data)
     }
