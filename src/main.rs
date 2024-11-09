@@ -55,13 +55,10 @@ fn app(cx: Scope) -> Element {
     cx.render(rsx! {
 
                 div {
-                    class: "flex flex-row w-full h-full",
+                    class: "flex flex-row w-screen h-screen min-h-screen min-w-screen",
 
                     div {
-                        class: "w-1/5 overflow-y-auto p-2",
-                        border_style: "solid",
-                        border_width: "1px",
-                        border_color: "black",
+                        class: "w-1/5 h-full overflow-y-auto p-2 border border-black",
 
                         json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
                             ul {
@@ -73,8 +70,9 @@ fn app(cx: Scope) -> Element {
                             }})
                     },
                     div {
-                        class: "w-4/5 flex flex-col p-4 space-y-4",
-                        JsonView {}
+                        class: "w-4/5 h-full flex flex-col p-4 space-y-4",
+                        SearchBox{},
+                        JsonView{}
                     }
 
                 }
@@ -183,24 +181,6 @@ fn JsonView(cx: Scope) -> Element {
             display_contents.write_silent().display_contents = contents;
 
             render! {
-
-                    div {
-
-                        class: "relative flex items-center w-full space-x-2",
-                        textarea {
-                            class:"flex-grow p-2 border border-gray-300 rounded resize-y",
-                            "Type the value you want to search in document",
-
-                        }
-                        button {
-                            class: "bg-blue-500 text-white p-2 rounded",
-                            style: "top: 50%",
-                            onclick: move |event| {
-                                // find_json_by_phrase(&cx);
-                                },
-                            "Search"
-                        }
-                    }
                     div {
                         class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
                         // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
@@ -215,25 +195,6 @@ fn JsonView(cx: Scope) -> Element {
         }
         _ =>
             render! {
-                 div {
-                    class: "relative flex items-center w-full space-x-2",
-                    textarea {
-                        class:"flex-grow p-2 border border-gray-300 rounded resize-y",
-                        "Type the value you want to search in document",
-
-                        // border: "3px",
-                        // position: "relative"
-                    }
-
-                    button {
-                        class: "bg-blue-500 text-white p-2 rounded",
-                        style: "top: 50%",
-                        onclick: move |event| {
-                            // find_json_by_phrase(&cx);
-                            },
-                        "Search"
-                    }
-                }
             div {
                         class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
                         // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
@@ -253,22 +214,19 @@ pub fn SearchBox(cx: Scope) -> Element {
         println!("mfniecmiwmi");
     };
     render! {
-                textarea {
-                    class:"flex-grow p-2 border border-gray-300 rounded resize-y",
-                    "Type the value you want to search in document",
-
-                    // border: "3px",
-                    // position: "relative"
-                }
-
-                button {
-                    class: "bg-blue-500 text-white p-2 rounded",
-                    style: "top: 50%",
-                    onclick: move |event| {
-                        // find_json_by_phrase(&cx);
-                        },
-                    "Search"
-                }
+                div {
+                         class: "relative flex items-center w-full space-x-2",
+                            textarea {
+                                class:"flex-grow p-2 border border-gray-300 rounded resize-y min-h-fit",
+                                rows:"1",
+                                "Search"
+                            }
+                            button {
+                            class:"bg-blue-500 text-white p-2 rounded",
+                            style:"top 50%",
+                            "DUPA"
+                         }
+                        }
 
 
     }
