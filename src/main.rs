@@ -71,14 +71,10 @@ fn app(cx: Scope) -> Element {
                                 "{file_name}"
                                     }
                             }})
-                    }
+                    },
                     div {
-                        div {
-                            SearchBox{}
-                        }
-                        div {
-                            JsonView {}
-                        }
+                        class: "w-4/5 flex flex-col p-4 space-y-4",
+                        JsonView {}
                     }
 
                 }
@@ -167,6 +163,7 @@ fn JsonView(cx: Scope) -> Element {
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
     let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
     let deserialized_structure = use_shared_state::<FullJsonTree>(cx).unwrap();
+    println!("{:?}",&*json_view_state.read());
     match &*json_view_state.read() {
         JsonViewState::Loaded(path) => {
             let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
@@ -177,44 +174,74 @@ fn JsonView(cx: Scope) -> Element {
                 .expect("Unable to read the file");
             let is_json_formatted = &contents[0..6].find("\n").is_some();
 
-            // Czy uzycie use_ref nie będzie lżejsze
             if *is_json_formatted {
-                println!("JAPIERDOLE");
                 deserialized_structure.write_silent().deserialized_json = serde_json::from_str::<Value>(contents.as_str()).unwrap();
             } else {
-                println!("CHUJSA");
                 contents = jsonxf::pretty_print(contents.as_str()).unwrap();
                 deserialized_structure.write_silent().deserialized_json = serde_json::from_str::<Value>(contents.as_str()).unwrap();
             }
             display_contents.write_silent().display_contents = contents;
 
             render! {
-                div {
-                    border_style: "solid",
-                    border_width: "1px",
-                    border_color: "black",
-                    // class: "flex flex-col w-3/4 p-4",
-                    // div {
-                    //     class:"flex items-center space-x-2",
-                    //     SearchBox{}
-                    // }
 
-                    // SimpleFilter{}
                     div {
+
+                        class: "relative flex items-center w-full space-x-2",
+                        textarea {
+                            class:"flex-grow p-2 border border-gray-300 rounded resize-y",
+                            "Type the value you want to search in document",
+
+                        }
+                        button {
+                            class: "bg-blue-500 text-white p-2 rounded",
+                            style: "top: 50%",
+                            onclick: move |event| {
+                                // find_json_by_phrase(&cx);
+                                },
+                            "Search"
+                        }
+                    }
+                    div {
+                        class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
                         // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
                         white_space: "pre-wrap",
                         // padding: "20px",
                         background_color: "lightgray",
                         "{display_contents.read().display_contents}"
                     }
-                }
+
+
             }
         }
-        _ => render! {
+        _ =>
+            render! {
+                 div {
+                    class: "relative flex items-center w-full space-x-2",
+                    textarea {
+                        class:"flex-grow p-2 border border-gray-300 rounded resize-y",
+                        "Type the value you want to search in document",
+
+                        // border: "3px",
+                        // position: "relative"
+                    }
+
+                    button {
+                        class: "bg-blue-500 text-white p-2 rounded",
+                        style: "top: 50%",
+                        onclick: move |event| {
+                            // find_json_by_phrase(&cx);
+                            },
+                        "Search"
+                    }
+                }
             div {
-                class: "flex flex-col w-3/4 p-4",
-                "dupa"
-            }
+                        class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
+                        // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
+                        white_space: "pre-wrap",
+                        // padding: "20px",
+                        background_color: "lightgray",
+                        "No file selected"
+                    }
         },
     }
 }
@@ -226,29 +253,24 @@ pub fn SearchBox(cx: Scope) -> Element {
         println!("mfniecmiwmi");
     };
     render! {
-        div {
-            class: "flex flex-row",
-            div {
-                class: "p-2 border rounded resize-y",
-                input {
+                textarea {
+                    class:"flex-grow p-2 border border-gray-300 rounded resize-y",
+                    "Type the value you want to search in document",
 
-                    placeholder: "Type the value you want to search in document",
-                    value: "d",
                     // border: "3px",
                     // position: "relative"
                 }
-            }
-           div {
-                class: "absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 text-white p-2 rounded",
-                button {
-                content: "search",
-                onclick: move |event| {
-                    // find_json_by_phrase(&cx);
-                    }
-                }
-            }
 
-        }
+                button {
+                    class: "bg-blue-500 text-white p-2 rounded",
+                    style: "top: 50%",
+                    onclick: move |event| {
+                        // find_json_by_phrase(&cx);
+                        },
+                    "Search"
+                }
+
+
     }
 }
 
