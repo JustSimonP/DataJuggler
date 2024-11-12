@@ -3,6 +3,9 @@ pub mod json_filter_methods {
     use std::error::Error;
     use std::fs::File;
     use std::io::Read;
+    use dioxus::core::Scope;
+    use dioxus::prelude::*;
+    use crate::FullJsonTree;
 
     fn main() -> Result<(), Box<dyn Error>> {
         let file_path = "C:/Users/User/IdeaProjects/JsonManipulator/src/generated(1).json";
@@ -21,6 +24,12 @@ pub mod json_filter_methods {
             Err(e) => eprintln!("Error reading JSON file: {}", e),
         }
         Ok(())
+    }
+
+    pub fn search_objects_for_value(cx: Scope, value_searched: &str) {
+       let mut json_tree =  use_shared_state::<FullJsonTree>(cx).unwrap();
+       let mut result: Vec<String> = Vec::new();
+        filter_objects_with_value(&json_tree.read().deserialized_json, value_searched, "", &mut result)
     }
 
     pub fn filter_objects_with_value(

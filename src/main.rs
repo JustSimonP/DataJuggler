@@ -40,7 +40,6 @@ fn main() {
             ),
     );
 
-    // dioxus_desktop::launch(app);
 }
 
 fn app(cx: Scope) -> Element {
@@ -190,7 +189,6 @@ fn JsonView(cx: Scope) -> Element {
                         "{display_contents.read().display_contents}"
                     }
 
-
             }
         }
         _ =>
@@ -209,26 +207,26 @@ fn JsonView(cx: Scope) -> Element {
 
 #[component]
 pub fn SearchBox(cx: Scope) -> Element {
-    let mut searchValue = cx.use_hook(|| "");
-    let getData = move || {
-        println!("mfniecmiwmi");
-    };
+    let mut search_value = use_state(cx, || "".to_string());
+    println!("{}", *search_value);
+
     render! {
                 div {
                          class: "relative flex items-center w-full space-x-2",
                             textarea {
                                 class:"flex-grow p-2 border border-gray-300 rounded resize-y min-h-fit",
                                 rows:"1",
-                                "Search"
+                                placeholder: "Describe needed value, property here",
+                                oninput: move |event| search_value.set(event.value.clone())
                             }
                             button {
                             class:"bg-blue-500 text-white p-2 rounded",
                             style:"top 50%",
-                            "DUPA"
+                            "Search"
+                            onclick: move ||
+
                          }
                         }
-
-
     }
 }
 
