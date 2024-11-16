@@ -49,6 +49,7 @@ fn app(cx: Scope) -> Element {
         display_contents: String::new(),
     });
     use_shared_state_provider(cx, || FullJsonTree { deserialized_json: Value::Null });
+    use_shared_state_provider(cx, || ValueJsonAddresses { value_json_addresses: Vec::new()});
     let json_view_state: &UseSharedState<JsonViewState> =
         use_shared_state::<JsonViewState>(cx).unwrap();
     cx.render(rsx! {
@@ -57,16 +58,32 @@ fn app(cx: Scope) -> Element {
                     class: "flex flex-row w-screen h-screen min-h-screen min-w-screen",
 
                     div {
-                        class: "w-1/5 h-full overflow-y-auto p-2 border border-black",
+                        class: "w-1/5 h-full p-2 border border-black flex flex-col",
+                                div {
+                                    class: "flex-grow overflow-y-auto overflow-x-auto border-b border-black",
+                                    json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
+                                    ul {
+                                        li{ onclick: move |event| {
+                                            *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
+                                        ,
+                                        "{file_name}"
+                                            }
+                                    }})
+                                }
 
-                        json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
-                            ul {
-                                li{ onclick: move |event| {
-                                    *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
-                                ,
-                                "{file_name}"
+                                div {
+                                    class: "flex-grow overflow-y-auto",
+                                    ul {
+                                        li {"test"},
+                                        li {"test"},
+                                        li {"test"},
+                                        li {"test"},
+                                        li {"test"},
                                     }
-                            }})
+                                }
+
+
+
                     },
                     div {
                         class: "w-4/5 h-full flex flex-col p-4 space-y-4",
@@ -155,6 +172,10 @@ struct RowsToDisplay {
     pub display_text: String,
 }
 
+struct ValueJsonAddresses {
+    pub value_json_addresses: Vec<String>,
+}
+
 #[component]
 fn JsonView(cx: Scope) -> Element {
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
@@ -223,19 +244,12 @@ pub fn SearchBox(cx: Scope) -> Element {
                             class:"bg-blue-500 text-white p-2 rounded",
                             style:"top 50%",
                             "Search"
-                            onclick: move ||
+                            // onclick: move ||
 
                          }
                         }
     }
 }
-
-//  fn find_json_by_phrase(cx: Scope<'_>) {
-//
-//     let json_view_state: &UseSharedState<JsonViewState> = use_shared_state::<JsonViewState>(cx).unwrap();
-//      filter_objects_with_value()
-//     *json_view_state.write() = JsonViewState::FileNotChosen
-// }
 
 //check if recursive call is optimized in rust, maybe benchmark
 // check if flatten from serde will be useful here
