@@ -3,9 +3,10 @@ pub mod json_filter_methods {
     use std::error::Error;
     use std::fs::File;
     use std::io::Read;
+    use std::time::Duration;
     use dioxus::core::Scope;
     use dioxus::prelude::*;
-    use crate::FullJsonTree;
+    use crate::{FullJsonTree, ValueJsonAddresses};
 
     fn main() -> Result<(), Box<dyn Error>> {
         let file_path = "C:/Users/User/IdeaProjects/JsonManipulator/src/generated(1).json";
@@ -15,7 +16,7 @@ pub mod json_filter_methods {
                 let target_value = "-138.304329";
                 let mut filtered_objects = Vec::new();
                 filter_objects_with_value(&mappedJson, &target_value, "", &mut filtered_objects);
-
+                let retrieve_objects = retrieve_objects_by_names(&mappedJson, &filtered_objects);
                 println!("Filtered Objects:");
                 for obj in filtered_objects {
                     println!("{}", obj);
@@ -27,9 +28,25 @@ pub mod json_filter_methods {
     }
 
     pub fn search_objects_for_value(cx: Scope, value_searched: &str) {
-       let mut json_tree =  use_shared_state::<FullJsonTree>(cx).unwrap();
+       let mut json_tree: &UseSharedState<FullJsonTree> =  use_shared_state::<FullJsonTree>(cx).unwrap();
+        let mut json_value_addresses: &UseSharedState<ValueJsonAddresses> = use_shared_state::<ValueJsonAddresses>(cx).unwrap();
        let mut result: Vec<String> = Vec::new();
-        filter_objects_with_value(&json_tree.read().deserialized_json, value_searched, "", &mut result)
+        filter_objects_with_value(&json_tree.read().deserialized_json, value_searched, "", &mut result);
+        let search_results = retrieve_objects_by_names(&json_tree.read().deserialized_json,&result);
+        // if result.is_empty() {
+        //     let trigger_popup = move || {
+        //         cx.spawn(async move {
+        //             tokio::time::sleep(Duration::from_secs(4)).await;
+        //         });
+        //
+        //         rsx!(
+        //             div {
+        //             class: "fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded shadow-lg opacity-100 transition-opacity duration-1000 fade-out",
+        //             "Nothing found!"
+        //             }
+        //         )
+        //     };
+        // }
     }
 
     pub fn filter_objects_with_value(
