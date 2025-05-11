@@ -3,36 +3,52 @@ pub mod json_filter_methods {
     use std::error::Error;
     use std::fs::File;
     use std::io::Read;
+    use std::iter::Peekable;
+    use std::str::Split;
     use std::time::Duration;
     use dioxus::core::Scope;
     use dioxus::prelude::*;
     use crate::{FullJsonTree, ValueJsonAddresses};
-
-    fn main() -> Result<(), Box<dyn Error>> {
-        let file_path = "C:/Users/User/IdeaProjects/JsonManipulator/src/generated(1).json";
-
-        match read_json_file(file_path) {
-            Ok(mappedJson) => {
-                let target_value = "-138.304329";
-                let mut filtered_objects = Vec::new();
-                filter_objects_with_value(&mappedJson, &target_value, "", &mut filtered_objects);
-                let retrieve_objects = retrieve_objects_by_names(&mappedJson, &filtered_objects);
-                println!("Filtered Objects:");
-                for obj in filtered_objects {
-                    println!("{}", obj);
-                }
-            }
-            Err(e) => eprintln!("Error reading JSON file: {}", e),
-        }
-        Ok(())
-    }
+    use crate::components::DisplayContents;
+    // fn main() -> Result<(), Box<dyn Error>> {
+    //     let file_path = "C:/Users/User/IdeaProjects/JsonManipulator/src/generated(1).json";
+    //
+    //     match read_json_file(file_path) {
+    //         Ok(mappedJson) => {
+    //             let target_value = "-138.304329";
+    //             let mut filtered_objects = Vec::new();
+    //             filter_objects_with_value(&mappedJson, &target_value, "", &mut filtered_objects);
+    //             let retrieve_objects = retrieve_objects_by_names(&mappedJson, &filtered_objects);
+    //             println!("Filtered Objects:");
+    //             for obj in filtered_objects {
+    //                 println!("{}", obj);
+    //             }
+    //         }
+    //         Err(e) => eprintln!("Error reading JSON file: {}", e),
+    //     }
+    //     Ok(())
+    // }
 
     pub fn search_objects_for_value(cx: Scope, value_searched: &str) {
-       let mut json_tree: &UseSharedState<FullJsonTree> =  use_shared_state::<FullJsonTree>(cx).unwrap();
+        println!("We are in the method, value: {}", value_searched);
+        let mut json_tree: &UseSharedState<FullJsonTree> = use_shared_state::<FullJsonTree>(cx).unwrap();
         let mut json_value_addresses: &UseSharedState<ValueJsonAddresses> = use_shared_state::<ValueJsonAddresses>(cx).unwrap();
-       let mut result: Vec<String> = Vec::new();
+        let display_contents: &UseSharedState<DisplayContents> = use_shared_state::<DisplayContents>(cx).unwrap();
+        let mut result: Vec<String> = Vec::new();
         filter_objects_with_value(&json_tree.read().deserialized_json, value_searched, "", &mut result);
-        let search_results = retrieve_objects_by_names(&json_tree.read().deserialized_json,&result);
+        let binding: Ref<FullJsonTree> = json_tree.read();
+        let dupa: Vec<String> = result.clone();
+        println!("Founded path: {}", dupa.join(","));
+        let search_results: Vec<&Value> = retrieve_objects_by_names(&binding.deserialized_json, dupa);
+        if !result.is_empty() {
+            json_value_addresses.write_silent().value_json_addresses = result;
+            let objects_in_string: Vec<String> = search_results.iter().map(|v| v.to_string()).collect();
+            println!("FUJ: {}", objects_in_string.join(", "));
+            *display_contents.write() = DisplayContents {
+                display_contents: "CHUJ".to_string(),
+            };
+
+        }// Seems like json loading is happening and resetting the file when clicking search button
         // if result.is_empty() {
         //     let trigger_popup = move || {
         //         cx.spawn(async move {
@@ -82,8 +98,7 @@ pub mod json_filter_methods {
                 };
                 // Check if the current value matches the target value
                 if maybe_value.is_some() && maybe_value.unwrap() == target_value {
-                    let key_value_pair = current_key.to_string() + " " + &*json.clone().to_string();
-                    result.push(key_value_pair);
+                    result.push(current_key.to_string());
                 }
             }
         }
@@ -91,16 +106,18 @@ pub mod json_filter_methods {
 
     pub fn retrieve_objects_by_names<'a>(
         json: &'a Value,
-        matched_names: &'a Vec<String>,
+        matched_names: Vec<String>,
     ) -> Vec<&'a Value> {
         matched_names
             .iter()
             .filter_map(|name| {
-                let mut path_iter = name.split('~').peekable();
+                println!("Name:  {}", name);
+                let mut elements: Vec<&str> = name.split(".").collect();
+
+                elements.pop();
+                let mut path_iter: Peekable<Split<char>> = name.split('.').peekable();
                 let mut current: &Value = json;
-                if name.chars().filter(|&c| c == '~').count() <= 2 {
-                    return None;
-                } else {
+
                     while let Some(segment) = path_iter.next() {
                         println!("OBECNY SEGMENT: {}", segment.clone().to_string());
                         if path_iter.peek().is_some() {
@@ -134,7 +151,6 @@ pub mod json_filter_methods {
                             return Some(current);
                         }
                     }
-                }
 
                 Some(current)
             })

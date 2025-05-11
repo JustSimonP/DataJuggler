@@ -1,6 +1,9 @@
 mod filter_components;
-mod json_filter_methods;
 
+mod json_filter_methods;
+mod components;
+
+use json_filter_methods::json_filter_methods::search_objects_for_value;
 use dioxus::prelude::*;
 use dioxus_desktop::tao::dpi::{PhysicalPosition, Position};
 use dioxus_desktop::{Config, WindowBuilder};
@@ -18,12 +21,12 @@ use winit::monitor::MonitorHandle;
 
 use crate::filter_components::SimpleFilter;
 
-use crate::json_filter_methods::json_filter_methods::filter_objects_with_value;
+use crate::components::DisplayContents;
 
 // use futures_channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 fn main() {
     // withPosition method describes position for top left cover part of displayed window
-    let (window_width, window_height, center_position) = getWindowSizeWithPosition();
+    let (window_width, window_height, center_position) = get_window_size_with_position();
     dioxus_desktop::launch_cfg(
         app,
         Config::default()
@@ -43,48 +46,23 @@ fn main() {
 }
 
 fn app(cx: Scope) -> Element {
-    let json_name_to_path_map: &mut HashMap<String, PathBuf> = cx.use_hook(|| get_jsons());
+    println!("Rendering main component!");
     use_shared_state_provider(cx, || JsonViewState::FileNotChosen);
     use_shared_state_provider(cx, || DisplayContents {
         display_contents: String::new(),
     });
     use_shared_state_provider(cx, || FullJsonTree { deserialized_json: Value::Null });
     use_shared_state_provider(cx, || ValueJsonAddresses { value_json_addresses: Vec::new()});
-    let json_view_state: &UseSharedState<JsonViewState> =
-        use_shared_state::<JsonViewState>(cx).unwrap();
+    // let json_view_state: &UseSharedState<JsonViewState> =
+    //     use_shared_state::<JsonViewState>(cx).unwrap();
+    let json_name_to_path_map: &HashMap<String, PathBuf> = use_memo(cx, (), |_| get_jsons());
+
     cx.render(rsx! {
 
                 div {
                     class: "flex flex-row w-screen h-screen min-h-screen min-w-screen",
 
-                    div {
-                        class: "w-1/5 h-full p-2 border border-black flex flex-col",
-                                div {
-                                    class: "flex-grow overflow-y-auto overflow-x-auto border-b border-black",
-                                    json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
-                                    ul {
-                                        li{ onclick: move |event| {
-                                            *json_view_state.write() = JsonViewState::Loaded(JsonPath{maybe_json_path: file_path.clone()})}
-                                        ,
-                                        "{file_name}"
-                                            }
-                                    }})
-                                }
-
-                                div {
-                                    class: "flex-grow overflow-y-auto",
-                                    ul {
-                                        li {"test"},
-                                        li {"test"},
-                                        li {"test"},
-                                        li {"test"},
-                                        li {"test"},
-                                    }
-                                }
-
-
-
-                    },
+                    Sidebar{json_name_to_path_map: json_name_to_path_map.clone()}
                     div {
                         class: "w-4/5 h-full flex flex-col p-4 space-y-4",
                         SearchBox{},
@@ -95,7 +73,47 @@ fn app(cx: Scope) -> Element {
     })
 }
 
-fn getWindowSizeWithPosition() -> (u32, u32, Position) {
+#[derive(Props, PartialEq)]
+pub struct SidebarProps {
+    json_name_to_path_map: HashMap<String, PathBuf>,
+}
+
+fn Sidebar(cx: Scope<SidebarProps>) -> Element {
+    let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
+    println!("Rendering Sidebar component!");
+    cx.render(rsx! {
+        div {
+            class: "w-1/5 h-full p-2 border border-black flex flex-col",
+
+            div {
+                class: "flex-grow overflow-y-auto overflow-x-auto border-b border-black",
+
+                cx.props.json_name_to_path_map.iter().map(|(file_name, file_path)| rsx! {
+                    ul {
+                        li {
+                            onclick: move |_| {
+                                *json_view_state.write() =
+                                    JsonViewState::Loaded(JsonPath {
+                                        maybe_json_path: file_path.clone()
+                                    });
+                            },
+                            "{file_name}"
+                        }
+                    }
+                })
+            },
+            div {
+                class: "flex-grow overflow-y-auto",
+                ul {
+                    li { "test" },
+                    li { "test" },
+                }
+            }
+        }
+    })
+}
+
+fn get_window_size_with_position() -> (u32, u32, Position) {
     let event_loop = winit::event_loop::EventLoop::new();
 
     // Get the primary monitor
@@ -162,10 +180,7 @@ struct FullJsonTree {
     pub deserialized_json: Value,
 }
 
-#[derive(Clone, Debug)]
-struct DisplayContents {
-    pub display_contents: String,
-}
+
 
 #[derive(Clone, Debug)]
 struct RowsToDisplay {
@@ -175,9 +190,38 @@ struct RowsToDisplay {
 struct ValueJsonAddresses {
     pub value_json_addresses: Vec<String>,
 }
+// #[component]
+// fn JsonValueAddresses(cx: Scope) -> Element {
+//     let addresses = use_shared_state::<ValueJsonAddresses>(cx).unwrap();
+//
+//     addresses.read().value_json_addresses.map(|address| rsx!(
+//
+//     ))
+// }
 
 #[component]
+fn FileDisplay(cx: Scope) -> Element {
+    println!("FileDisplay component rendered");
+
+    let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
+
+    cx.render(rsx! {
+                    div {
+                        class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
+                        // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
+                        white_space: "pre-wrap",
+                        // padding: "20px",
+                        background_color: "lightgray",
+                        "{display_contents.read().display_contents}"
+                    }
+
+            })
+}
+
+//When DisplayContent was not updated
+#[component]
 fn JsonView(cx: Scope) -> Element {
+    println!("Rendering JsonView component!");
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
     let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
     let deserialized_structure = use_shared_state::<FullJsonTree>(cx).unwrap();
@@ -200,17 +244,9 @@ fn JsonView(cx: Scope) -> Element {
             }
             display_contents.write_silent().display_contents = contents;
 
-            render! {
-                    div {
-                        class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
-                        // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
-                        white_space: "pre-wrap",
-                        // padding: "20px",
-                        background_color: "lightgray",
-                        "{display_contents.read().display_contents}"
-                    }
-
-            }
+            cx.render(rsx! {
+                    FileDisplay{}
+            })
         }
         _ =>
             render! {
@@ -237,14 +273,16 @@ pub fn SearchBox(cx: Scope) -> Element {
                             textarea {
                                 class:"flex-grow p-2 border border-gray-300 rounded resize-y min-h-fit",
                                 rows:"1",
-                                placeholder: "Describe needed value, property here",
+                                placeholder: "Describe needed value/property here",
                                 oninput: move |event| search_value.set(event.value.clone())
                             }
                             button {
                             class:"bg-blue-500 text-white p-2 rounded",
                             style:"top 50%",
+                            onclick: move |_| {
+                                    search_objects_for_value(cx, &search_value.get())
+                                 },
                             "Search"
-                            // onclick: move ||
 
                          }
                         }

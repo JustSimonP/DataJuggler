@@ -1,1 +1,27 @@
 1. Different os have different representation of new line in String
+
+
+Plan:
+1. Default list of choices for the user to find what he needs:
+    a) find by value
+    b) find by property name
+    c) find by property name and value
+    etc.
+
+2. Filter builder UI-when user needs something more complicated
+What should Filter Builder have?
+-> list of permitted values
+-> logical operations OR, AND, NOT for every case of properties
+let formatted_json = serde_json::from_str::<Value>(contents.as_str());
+use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_json.expect("Deserialization has failed")});
+
+
+3. Use rust rayon parallelism library for faster processing?
+
+
+| Action in `app()`                    | Subscribes to re-renders?     |
+| ------------------------------------ | ----------------------------- |
+| `use_shared_state_provider(...)`     | ❌ No (just provides)          |
+| `use_shared_state::<T>(cx).unwrap()` | ✅ Yes (subscribes to updates) |
+| Accessing `.read()` or `.with()`     | ✅ Yes                         |
+| Only `.write()` or `.write_silent()` | ❌ Doesn't subscribe           |
