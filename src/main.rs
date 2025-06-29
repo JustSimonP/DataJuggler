@@ -163,14 +163,14 @@ fn get_jsons() -> HashMap<String, PathBuf> {
     available_jsons
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum JsonViewState {
     FileNotChosen,
     Loading,
     Loaded(JsonPath),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct JsonPath {
     pub(crate) maybe_json_path: PathBuf,
 }
@@ -218,48 +218,59 @@ fn FileDisplay(cx: Scope) -> Element {
             })
 }
 
-//When DisplayContent was not updated
+//Now clicking at diffferent json path doesn't rerender display
 #[component]
 fn JsonView(cx: Scope) -> Element {
-    println!("Rendering JsonView component!");
+    println!("Rendering JsonView");
+
     let json_view_state = use_shared_state::<JsonViewState>(cx).unwrap();
-    let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
-    let deserialized_structure = use_shared_state::<FullJsonTree>(cx).unwrap();
-    println!("{:?}",&*json_view_state.read());
-    match &*json_view_state.read() {
-        JsonViewState::Loaded(path) => {
-            let file = File::open(path.maybe_json_path.clone().as_path()).unwrap();
+
+    // This memo will recompute when the JsonViewState changes
+    let _ = use_memo(cx, &[json_view_state.read().clone()], move |_| {
+        if let JsonViewState::Loaded(path) = &*json_view_state.read() {
+            println!("Loading and parsing JSON");
+
+            let file = File::open(path.maybe_json_path.as_path()).unwrap();
             let mut buf_reader = BufReader::new(file);
             let mut contents = String::new();
-            buf_reader
-                .read_to_string(&mut contents)
-                .expect("Unable to read the file");
-            let is_json_formatted = &contents[0..6].find("\n").is_some();
+            buf_reader.read_to_string(&mut contents).unwrap();
 
-            if *is_json_formatted {
-                deserialized_structure.write_silent().deserialized_json = serde_json::from_str::<Value>(contents.as_str()).unwrap();
+            let is_json_formatted = contents.find('\n').is_some();
+            let pretty = if !is_json_formatted {
+                jsonxf::pretty_print(&contents).unwrap()
             } else {
-                contents = jsonxf::pretty_print(contents.as_str()).unwrap();
-                deserialized_structure.write_silent().deserialized_json = serde_json::from_str::<Value>(contents.as_str()).unwrap();
-            }
-            display_contents.write_silent().display_contents = contents;
+                contents.clone()
+            };
 
+            // Write data to shared states
+            let deserialized_structure = use_shared_state::<FullJsonTree>(cx).unwrap();
+            let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
+
+            deserialized_structure.write().deserialized_json =
+                serde_json::from_str(&pretty).unwrap();
+            display_contents.write().display_contents = pretty;
+        }
+    });
+
+    match &*json_view_state.read() {
+        JsonViewState::Loaded(_) => {
             cx.render(rsx! {
-                    FileDisplay{}
+                FileDisplay {}
             })
         }
-        _ =>
-            render! {
-            div {
-                        class:"w-full p-4 border border-gray-300 bg-gray-100 overflow-y-auto resize-y",
-                        // class: "w-full mt-4 overflow-y-auto p-4 bg-gray-100 rounded",
-                        white_space: "pre-wrap",
-                        // padding: "20px",
-                        background_color: "lightgray",
-                        "No file selected"
-                    }
-        },
+        _ => cx.render(rsx! {
+            div { "No file selected" }
+        }),
     }
+}
+// Putting use_shared_state in separate method causes the component not to re-render
+fn update_display_contents( contents: &str, cx: Scope) {
+    let deserialized_structure = use_shared_state::<FullJsonTree>(cx).unwrap();
+    let display_contents = use_shared_state::<DisplayContents>(cx).unwrap();
+
+    let parsed_json: Value = serde_json::from_str(contents).unwrap();
+    deserialized_structure.write_silent().deserialized_json = parsed_json;
+    display_contents.write_silent().display_contents = contents.to_string();
 }
 
 #[component]

@@ -42,10 +42,13 @@ pub mod json_filter_methods {
         let search_results: Vec<&Value> = retrieve_objects_by_names(&binding.deserialized_json, dupa);
         if !result.is_empty() {
             json_value_addresses.write_silent().value_json_addresses = result;
-            let objects_in_string: Vec<String> = search_results.iter().map(|v| v.to_string()).collect();
+            let objects_in_string: Vec<String> = search_results
+                .iter()
+                .map(|v| serde_json::to_string_pretty(v).unwrap_or_else(|_| "<invalid json>".to_string()))
+                .collect();
             println!("FUJ: {}", objects_in_string.join(", "));
             *display_contents.write() = DisplayContents {
-                display_contents: "CHUJ".to_string(),
+                display_contents: objects_in_string.join(",\n"),
             };
 
         }// Seems like json loading is happening and resetting the file when clicking search button
