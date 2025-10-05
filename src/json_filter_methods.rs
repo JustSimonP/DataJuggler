@@ -5,7 +5,6 @@ pub mod json_filter_methods {
     use std::io::Read;
     use std::iter::Peekable;
     use std::str::Split;
-    use std::time::Duration;
     use dioxus::core::Scope;
     use dioxus::prelude::*;
     use crate::{FullJsonTree, ValueJsonAddresses};
@@ -34,22 +33,16 @@ pub mod json_filter_methods {
         let mut json_tree: &UseSharedState<FullJsonTree> = use_shared_state::<FullJsonTree>(cx).unwrap();
         let mut json_value_addresses: &UseSharedState<ValueJsonAddresses> = use_shared_state::<ValueJsonAddresses>(cx).unwrap();
         let display_contents: &UseSharedState<DisplayContents> = use_shared_state::<DisplayContents>(cx).unwrap();
-        let mut result: Vec<String> = Vec::new();
-        filter_objects_with_value(&json_tree.read().deserialized_json, value_searched, "", &mut result);
-        let binding: Ref<FullJsonTree> = json_tree.read();
-        let dupa: Vec<String> = result.clone();
-        println!("Founded path: {}", dupa.join(","));
-        let search_results: Vec<&Value> = retrieve_objects_by_names(&binding.deserialized_json, dupa);
-        if !result.is_empty() {
-            json_value_addresses.write_silent().value_json_addresses = result;
-            let objects_in_string: Vec<String> = search_results
-                .iter()
-                .map(|v| serde_json::to_string_pretty(v).unwrap_or_else(|_| "<invalid json>".to_string()))
-                .collect();
-            println!("FUJ: {}", objects_in_string.join(", "));
+
+        let binding = json_tree.read();
+        let (addresses, objects_in_string): (Vec<String>, Vec<String>) = search_json_for_value(&binding.deserialized_json, value_searched);
+
+        if !addresses.is_empty() {
+            json_value_addresses.write_silent().value_json_addresses = addresses;
             *display_contents.write() = DisplayContents {
                 display_contents: objects_in_string.join(",\n"),
             };
+        }
 
         }// Seems like json loading is happening and resetting the file when clicking search button
         // if result.is_empty() {
@@ -66,6 +59,20 @@ pub mod json_filter_methods {
         //         )
         //     };
         // }
+
+
+    pub fn search_json_for_value(json: &serde_json::Value, value_searched: &str) -> (Vec<String>, Vec<String>) {
+        let mut result: Vec<String> = Vec::new();
+        filter_objects_with_value(json, value_searched, "", &mut result);
+
+        let search_results: Vec<&serde_json::Value> = retrieve_objects_by_names(json, result.clone());
+
+        let objects_in_string: Vec<String> = search_results
+            .iter()
+            .map(|v| serde_json::to_string_pretty(v).unwrap_or_else(|_| "<invalid json>".to_string()))
+            .collect();
+
+        (result, objects_in_string)
     }
 
     pub fn filter_objects_with_value(

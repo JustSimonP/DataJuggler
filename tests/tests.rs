@@ -1,28 +1,30 @@
 
-
-pub fn add(a: i32, b: i32) -> i32 {
-    a + b
-}
-
-// This is a really bad adding function, its purpose is to fail in this
-// example.
-#[allow(dead_code)]
-fn bad_add(a: i32, b: i32) -> i32 {
-    a - b
-}
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use std::fs;
+    use serde_json::Value;
     #[test]
-    fn test_add() {
-        assert_eq!(add(1, 2), 3);
-    }
+    fn phrase_is_found_in_json() {
+        let json_str = fs::read_to_string("tests/resources/jsons/json_deep_tree.json")
+            .expect("Failed to read JSON file");
 
-    #[test]
-    fn test_bad_add() {
-        // This assert would fire and test will fail.
-        // Please note, that private functions can be tested too!
-        assert_eq!(bad_add(1, 2), 3);
+        // 2️⃣ Parse the JSON into a serde_json::Value
+        let json_value: Value = serde_json::from_str(&json_str)
+            .expect("Invalid JSON structure");
+
+        // 3️⃣ Run your search logic with any test value you want
+        //Import doesn't work
+        let (addresses, results) = search_json_for_value(&json_value, "test_value");
+
+        // 4️⃣ Print out results for debugging
+        println!("🔍 Found paths: {:?}", addresses);
+        println!("📄 Matched JSONs:\n{}", results.join("\n\n"));
+
+        // 5️⃣ Optionally, assert that something was found
+        // (Replace "expected_path" with a path that actually exists in your JSON)
+        assert!(
+            !addresses.is_empty(),
+            "No matches found for the searched value"
+        );
     }
 }

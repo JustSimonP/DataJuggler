@@ -1,0 +1,55 @@
+{
+  "user": {
+    "id": 183,
+    "name": "Alice",
+    "profile": {
+      "age": 29,
+      "location": {
+        "city": "Wroclaw",
+        "coordinates": {
+          "lat": 51.1079,
+          "lon": 17.0385
+        }
+      },
+      "preferences": {
+        "notifications": true,
+        "theme": "dark",
+        "history": {
+          "logins": [ "2025-06-01", "2025-06-15", "2025-06-29" ],
+          "actions": [
+            {
+              "type": "click",
+              "timestamp": "2025-06-29T12:04:00Z"
+            },
+            {
+              "type": "scroll",
+              "timestamp": "2025-06-29T12:06:22Z",
+              "position": {
+                "x": 100,
+                "y": 5400
+              },
+              "total": "250h",
+              "used": "290GB"
+            }
+          ]
+        }
+      }
+    },
+    "tags": [ "admin", null, "beta" ]
+  },
+  "system": {
+    "version": "3.2.1",
+    "uptime_hours": 492,
+    "features": {
+      "enabled": [ "logging", "metrics", "alerts" ],
+      "limits": {
+        "cpu": "2 cores",
+        "memory": "8GB",
+        "disk": {
+          "total": "256GB",
+          "used": "189GB"
+        }
+      }
+    }
+  }
+}
