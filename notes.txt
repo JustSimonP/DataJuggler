@@ -25,3 +25,9 @@ use_shared_state_provider(cx,  || FullJsonTree {deserialized_json: formatted_jso
 | `use_shared_state::<T>(cx).unwrap()` | ✅ Yes (subscribes to updates) |
 | Accessing `.read()` or `.with()`     | ✅ Yes                         |
 | Only `.write()` or `.write_silent()` | ❌ Doesn't subscribe           |
+
+temporary removal of warnings on powershell terminal:
+ $env:RUSTFLAGS="-Awarnings"
+
+ Permanent: $env:RUSTFLAGS="-Awarnings"; cargo test
+ Removal oof variable: Remove-Item Env:RUSTFLAGS

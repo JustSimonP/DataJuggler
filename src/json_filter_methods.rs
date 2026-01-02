@@ -66,7 +66,12 @@ pub mod json_filter_methods {
         filter_objects_with_value(json, value_searched, "", &mut result);
 
         let search_results: Vec<&serde_json::Value> = retrieve_objects_by_names(json, result.clone());
-
+        if !search_results.is_empty() {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(search_results[0]).unwrap()
+            );
+        }
         let objects_in_string: Vec<String> = search_results
             .iter()
             .map(|v| serde_json::to_string_pretty(v).unwrap_or_else(|_| "<invalid json>".to_string()))
@@ -120,51 +125,39 @@ pub mod json_filter_methods {
     ) -> Vec<&'a Value> {
         matched_names
             .iter()
-            .filter_map(|name| {
-                println!("Name:  {}", name);
-                let mut elements: Vec<&str> = name.split(".").collect();
-
-                elements.pop();
-                let mut path_iter: Peekable<Split<char>> = name.split('.').peekable();
+            .filter_map(|path| {
                 let mut current: &Value = json;
 
-                    while let Some(segment) = path_iter.next() {
-                        println!("OBECNY SEGMENT: {}", segment.clone().to_string());
-                        if path_iter.peek().is_some() {
-                            //TODO This can be way more efficient
-                            if segment.ends_with("]") {
-                                let index_start = segment.find('[')?;
-                                let index_end = segment.find(']')?;
-                                let index_str: &str = &segment[index_start + 1..index_end];
-                                let index: usize = index_str.parse::<usize>().ok()?;
-
-                                current = match current {
-                                    Value::Array(vec) => {
-                                        let inin = vec.get(index).expect("We are fucked!");
-                                        println!("COS MAMY ARRAY: {}", inin.clone().to_string());
-                                        inin
-                                    }
-                                    _ => return None,
-                                };
-                            } else {
-                                current = match current {
-                                    Value::Object(map) => {
-                                        let dupa = map.get(segment)?;
-                                        println!("COS MAMY OBJECT: {}", dupa.clone().to_string());
-                                        dupa
-                                    }
-                                    _ => return None,
-                                };
-                            }
-                        } else {
-                            println!("COS TAM TEST !!!!: {}", current.clone().to_string());
-                            return Some(current);
-                        }
+                println!("Name:  {}", path);
+                for segment in path.split(".") {
+                    if let Some((field, index)) = parse_indexed_segment(segment) {
+                        // object -> array[index]
+                        current = current.get(field)?;
+                        current = current.get(index)?;
+                    } else if let Ok(index) = segment.parse::<usize>() {
+                        // pure array index
+                        current = current.get(index)?;
+                    } else {
+                        // object field
+                        current = current.get(segment)?;
                     }
-
+                }
+  
+                
                 Some(current)
             })
             .collect()
+                  
+    }   
+
+    fn parse_indexed_segment(segment: &str) -> Option<(&str, usize)> {
+        let start = segment.find('[')?;
+        let end = segment.find(']')?;
+    
+        let field = &segment[..start];
+        let index = segment[start + 1..end].parse::<usize>().ok()?;
+    
+        Some((field, index))
     }
     //look for values of object with certain name
     //look for objects of certain values
@@ -185,5 +178,36 @@ pub mod json_filter_methods {
         let data: Value = serde_json::from_str(&contents)?;
 
         Ok(data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::json_filter_methods::search_json_for_value;
+    use std::fs;
+    use serde_json::Value;
+    #[test]
+    fn phrase_is_found_in_json() {
+        let json_str = fs::read_to_string("tests/resources/jsons/json_deep_tree.json")
+            .expect("Failed to read JSON file");
+
+        // 2️⃣ Parse the JSON into a serde_json::Value
+        let json_value: Value = serde_json::from_str(&json_str)
+            .expect("Invalid JSON structure");
+
+        // 3️⃣ Run your search logic with any test value you want
+        //Import doesn't work
+        let (addresses, results) = search_json_for_value(&json_value, "290GB");
+
+        // 4️⃣ Print out results for debugging
+        println!("🔍 Found paths: {:?}", addresses);
+        println!("📄 Matched JSONs:\n{}", results.join("\n\n"));
+
+        // 5️⃣ Optionally, assert that something was found
+        // (Replace "expected_path" with a path that actually exists in your JSON)
+        assert!(
+            !addresses.is_empty(),
+            "No matches found for the searched value"
+        );
     }
 }
